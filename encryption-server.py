@@ -78,11 +78,15 @@ def encrypt_data(session_key, plaintext):
   return data
 
 def parse_encrypted_msg(enc_msg : bytes):
-  if(len(enc_msg < 33)):
-    raise OSError
-  nonce = enc_msg[0:16]
-  tag = enc_msg[16:32]
-  ciphertext = enc_msg[32:]
+  try:
+    nonce = enc_msg[0:16]
+    tag = enc_msg[16:32]
+    ciphertext = enc_msg[32:]
+  except:
+    nonce = b''
+    tag = b''
+    ciphertext = b''
+    print("Could not parse encrypted Message")
   return (nonce,tag,ciphertext)
 
 def listen(skt:socket):
@@ -114,7 +118,7 @@ def listen(skt:socket):
 
   #9. Read message from client.
   client_msg_len = client.socket.recv(4, MSG_WAITALL)
-  client_msg = client.socket.recv(client_msg_len)
+  client_msg = client.socket.recv(int.from_bytes(client_msg_len, sys.byteorder))
   
   #10. Decrypt the message with AES session key
   nonce,tag,ciphertext = parse_encrypted_msg(client_msg)
