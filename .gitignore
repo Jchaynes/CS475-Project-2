@@ -3,3 +3,5 @@ encrypted_data.bin
 private.pem
 received_encrypted_data.bin
 receiver.pem
+.vscode/launch.json
+receiver.pem
