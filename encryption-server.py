@@ -1,4 +1,4 @@
-from socket import SOCK_STREAM, AF_INET, socket, MSG_WAITALL,htons,ntohs
+from socket import MSG_PEEK, SOCK_STREAM, AF_INET, socket, MSG_WAITALL,htons,ntohs
 import argparse
 import sys
 import threading
@@ -46,8 +46,7 @@ class cryptoClient:
     self.socket.send(msgLen.to_bytes(4,sys.byteorder))
     self.socket.send(message)
 
-
-clients = [cryptoClient]
+threads = [threading.Thread]
 
 def create_socket(address,port):
   skt = socket(AF_INET,SOCK_STREAM)
@@ -60,7 +59,7 @@ def decrypt_data(session_key,nonce,tag, ciphertext):
   return  data.decode("utf-8")
 
 def encrypt_data(session_key, plaintext):
-  print("Encrypting data with session key")
+  #print("Encrypting data with session key")
   #Encrypt the data with AES EAX mode
   cipher_aes = AES.new(session_key,AES.MODE_EAX)
   ciphertext, tag = cipher_aes.encrypt_and_digest(plaintext)
@@ -70,11 +69,11 @@ def encrypt_data(session_key, plaintext):
   nonce_len = sys.getsizeof(cipher_aes.nonce)
   tag_len = sys.getsizeof(tag)
   ciphertext_len = sys.getsizeof(ciphertext)
-  print("Message size is:", data, sys.getsizeof(data))
+  # print("Message size is:", data, sys.getsizeof(data))
 
-  print("Nonce: ", cipher_aes.nonce, nonce_len)
-  print("Tag: ", tag,  tag_len)
-  print("Ciphertext: ", ciphertext, ciphertext_len)
+  # print("Nonce: ", cipher_aes.nonce, nonce_len)
+  # print("Tag: ", tag,  tag_len)
+  # print("Ciphertext: ", ciphertext, ciphertext_len)
   return data
 
 def parse_encrypted_msg(enc_msg : bytes):
@@ -116,11 +115,12 @@ def listen(skt:socket):
   con_socket.send(sys.getsizeof(enc_session_key).to_bytes(4,'little'))
   con_socket.send(enc_session_key)
 
-  #9. Read message from client.
+
+  # #9. Read message from client.
   client_msg_len = client.socket.recv(4, MSG_WAITALL)
   client_msg = client.socket.recv(int.from_bytes(client_msg_len, sys.byteorder))
   
-  #10. Decrypt the message with AES session key
+  # #10. Decrypt the message with AES session key
   nonce,tag,ciphertext = parse_encrypted_msg(client_msg)
   decrypted_client_msg = decrypt_data(client.session_key,nonce,tag,ciphertext)
   print(decrypted_client_msg)
@@ -128,38 +128,36 @@ def listen(skt:socket):
 
   encrypted_data = encrypt_data(client.session_key,data)
   client.send(encrypted_data)
-  client.socket.close()
-  return
+
+ # send_client(client)
+  # client.socket.close()
+  # return
   #Send the client the encrypted session key, nonce, tag, and their intial string.
 
 def read_client(client:cryptoClient):
-  # while(True):
-    #Read in Key Length for client RSA key
-    print("reading data from the client...")
+  print("reading data from the client...")
+  #Read in Key Length for client RSA key
+  if(client.socket.recv(4096,MSG_PEEK) != b''):
     keyLen = client.socket.recv(4,MSG_WAITALL)
-    print("Reading in data length of %d " % (int.from_bytes(keyLen,'little')))
+    #print("Reading in data length of %d " % (int.from_bytes(keyLen,'little')))
     if(int.from_bytes(keyLen,'little') > 0):      #Read in client RSA key bytes in little endian format
       msg = client.socket.recv(int.from_bytes(keyLen,'little'))
-      print(msg)
-      nonce = msg[:16]
-      tag = msg[16:32]
-      ciphertext = msg[32:]
-      
+      nonce, tag, ciphertext = parse_encrypted_msg(msg)
     
       print(decrypt_data(client.session_key,nonce,tag,ciphertext))
-    return
-
+  
 
 def send_client(client:cryptoClient):
-  # while(True):
+  while(True):
     print("Beggining chat with client.")
-    encrypted_string = encrypt_data(client.session_key,data)
-    client.send(encrypted_string)
+    # encrypted_string = encrypt_data(client.session_key,data)
+    # client.send(encrypted_string)
     userString = input("Chat: ")
     if(userString.lower() == "quit"):
-      return
-    encrypted_string = encrypt_data(client.session_key,userString)
+       return
+    encrypted_string = encrypt_data(client.session_key,userString.encode("utf-8"))
     client.send(encrypted_string)
+    read_client(client)
   
 
 
@@ -167,5 +165,4 @@ if __name__ == "__main__":
 
   srv_socket = create_socket(args.address,args.port)
   srv_socket.listen(2)
-  #while(True):
   listen(srv_socket)
