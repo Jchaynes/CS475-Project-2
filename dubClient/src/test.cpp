@@ -24,7 +24,7 @@
 
 using namespace CryptoPP;
 
-void Save(const std::string& filename, const BufferedTransformation& bt);
+// void Save(const std::string& filename, const BufferedTransformation& bt);
 
 int main(int argc, char** argv)
 {
@@ -39,17 +39,19 @@ int main(int argc, char** argv)
     AutoSeededRandomPool rng;
     unsigned int bitties = 3072;
     //RSA Key Generation
-    RSA::PrivateKey private_RSA_key;
+    RSAES_OAEP_SHA_Decryptor rsaPrivateKey;
+    rsaPrivateKey.AccessKey().GenerateRandomWithKeySize(rng, bitties);
+    RSAES_OAEP_SHA_Encryptor rsaPublicKey(rsaPrivateKey);
 
-    try{
-        private_RSA_key.GenerateRandomWithKeySize(rng, bitties);
-    } catch(const CryptoPP::Exception& CRYPT_E)
-    {
-        std::cout << "What: " + CRYPT_E.GetWhat() << std::endl;
-        return -1;
-    }
+    // try{
+    //     rsaPrivateKey.AccessKey().GenerateRandomWithKeySize(rng, bitties);
+    // } catch(const CryptoPP::Exception& CRYPT_E)
+    // {
+    //     std::cout << "What: " + CRYPT_E.GetWhat() << std::endl;
+    //     return -1;
+    // }
 
-    RSA::PublicKey public_RSA_key(private_RSA_key);
+    
     // EncodePrivKey("rsa-private.key",private_RSA_key);
     // EncodePubKey("rsa-pub.key",public_RSA_key);
     
@@ -116,16 +118,19 @@ int main(int argc, char** argv)
     char* outgoing;
     ssize_t remain_to_send = 0;
     ssize_t amount_sent = 0;
-    //Send public RSA Key (htonl / ntohl? probably the latter)
     
-    // outgoing = 
-    std:: cout << "Size of test: " << sizeof(private_RSA_key) << std::endl;
+    // save a PEM and load it (with PEM pack) consider DER/Base64 if more sane solution
+    FileSink phial("RSA_priv.pem",true);
+    CryptoPP::PEM_Save(phial,rsaPrivateKey.GetKey());
+    
+    
 
 }
 
-void Save(const std::string& filename, const BufferedTransformation& bt)
-{
-    FileSink file(filename.c_str());
-    bt.CopyTo(file);
-    file.MessageEnd();
-}
+// void Save(const std::string& filename, const BufferedTransformation& bt)
+// {
+//     FileSink file(filename.c_str());
+//     bt.CopyTo(file);
+//     file.MessageEnd();
+// }
+

@@ -56,6 +56,9 @@
         "typeinfo": "cpp"
     },
     "cSpell.ignoreWords": [
+        "Decryptor",
+        "Encryptor",
+        "RSAES",
         "isoptera",
         "lcsc"
     ]
