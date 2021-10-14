@@ -5,3 +5,5 @@ received_encrypted_data.bin
 receiver.pem
 .vscode/launch.json
 receiver.pem
+libcryptopp.a
+
